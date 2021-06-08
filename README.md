@@ -6,11 +6,13 @@ Server plugin installation:-
 - Extract to svencoop_addon
 - Edit your `default_plugins.txt` file and add the following code
 
-`"plugin"`
-`{`
-	`"name" "HealthBar"`
-	`"script" "HealthBar"`
-`}`
+`"plugin"
+{
+
+	"name" "HealthBar"
+	"script" "HealthBar"
+
+}`
 	
 then save
 - Add your cvars to your (listen)server.cfg file - see cvars below:
