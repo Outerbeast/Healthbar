@@ -7,12 +7,13 @@ Server plugin installation:-
 - Edit your `default_plugins.txt` file and add the following code
 
 `"plugin"
+
 {
 
 	"name" "HealthBar"
 	"script" "HealthBar"
 
-}
+}`
 	
 
 - Add your cvars to your (listen)server.cfg file - see cvars below:
