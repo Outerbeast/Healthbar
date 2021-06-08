@@ -6,8 +6,8 @@ Server plugin installation:-
 - Extract to svencoop_addon
 - Edit your `default_plugins.txt` file and add the following code
 
-`"plugin"
-{
+`"plugin"`
+`{
 
 	"name" "HealthBar"
 	"script" "HealthBar"
