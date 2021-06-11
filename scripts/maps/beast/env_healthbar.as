@@ -43,7 +43,9 @@ const array<string> STR_EXCLUDED_NPCS =
     "monster_leech",
     "monster_handgrenade",
     "monster_satchel",
-    "monster_tripmine"
+    "monster_tripmine",
+    "monster_turret",
+    "monster_miniturret"
 };
 
 void RegisterHealthBarEntity()
@@ -160,8 +162,6 @@ void SpawnEnvHealthBar(CBaseEntity@ pTarget, const Vector vOriginOffset, const f
 
 class env_healthbar : ScriptBaseEntity
 {
-    PlayerPostThinkHook@ pPlayerPostThinkFunc = null;
-
     private EHandle hTrackedEntity, hHealthBar;
 
     private string strSpriteName = strDefaultSpriteName;
@@ -216,12 +216,6 @@ class env_healthbar : ScriptBaseEntity
         SetThink( ThinkFunction( this.TrackEntity ) );
         //  Run automatically if this has no targetname.
         if( self.GetTargetname().IsEmpty() ) self.Use( self, self, USE_ON );
-
-        if( !self.pev.SpawnFlagBitSet( 1 ) )
-        {
-            @pPlayerPostThinkFunc = PlayerPostThinkHook( this.AimingPlayer );
-            g_Hooks.RegisterHook( Hooks::Player::PlayerPostThink, @pPlayerPostThinkFunc );
-        }
     }
 
     void UpdateOnRemove()
@@ -230,9 +224,6 @@ class env_healthbar : ScriptBaseEntity
             g_EntityFuncs.Remove( hHealthBar.GetEntity() );
         
         BaseClass.UpdateOnRemove();
-
-        if( pPlayerPostThinkFunc !is null )
-            g_Hooks.RemoveHook( Hooks::Player::PlayerPostThink, @pPlayerPostThinkFunc );
     }
 
     void TrackEntity()
@@ -287,6 +278,9 @@ class env_healthbar : ScriptBaseEntity
             return;
         }
 
+        if( hHealthBar )
+            AimThink();
+
         self.pev.nextthink = g_Engine.time + 0.01f;
     }
     //  Trigger-able.
@@ -320,6 +314,24 @@ class env_healthbar : ScriptBaseEntity
         }
         self.pev.nextthink = g_Engine.time + 0.01f;
     }
+    
+    void AimThink()
+    {
+        for( int playerID = 1; playerID <= g_Engine.maxClients; playerID++ )
+        {
+            CBasePlayer@ pPlayer = g_PlayerFuncs.FindPlayerByIndex( playerID );
+
+            if( pPlayer is null || !pPlayer.IsAlive() )
+                continue;
+            // If a player is aiming at an npc, draw healthbar, else hide
+            CBaseEntity@ pAimedEntity = g_Utility.FindEntityForward( pPlayer, flDrawDistance );
+
+            if( pAimedEntity is hTrackedEntity.GetEntity() )
+                Show();
+            else
+                Hide();
+        }
+    }
 
     void Show()
     {
@@ -331,7 +343,7 @@ class env_healthbar : ScriptBaseEntity
 
     void Hide()
     {
-        if( !hHealthBar )
+        if( !hHealthBar || self.pev.SpawnFlagBitSet( 1 ) )
             return;
         
         hHealthBar.GetEntity().pev.renderamt = 0.0f;
@@ -352,11 +364,10 @@ class env_healthbar : ScriptBaseEntity
         //  Is this really necessary ???
         pHealthBar.pev.frame = GetMaxFrame();
         //g_Game.AlertMessage( at_notice, "env_healthbar GetMaxFrame(): " + GetMaxFrame() + "\n" );
+        hHealthBar = pHealthBar;
 
         if( self.pev.SpawnFlagBitSet( 1 ) )
             Show();
-
-        hHealthBar = pHealthBar;
     }
 
     float GetHealth()
@@ -382,23 +393,6 @@ class env_healthbar : ScriptBaseEntity
         //  Zero is minimum.
         if( hHealthBar ) return Math.max( 0, g_EngineFuncs.ModelFrames( g_EngineFuncs.ModelIndex( hHealthBar.GetEntity().pev.model ) ) - 1 );
         return 0;
-    }
-
-    protected HookReturnCode AimingPlayer(CBasePlayer@ pPlayer)
-    {
-        if( pPlayer is null )
-            return HOOK_CONTINUE;
-        
-        CBaseEntity@ pAimedEntity = g_Utility.FindEntityForward( pPlayer, flDrawDistance );
-
-        if( hHealthBar )
-        {
-            if( pAimedEntity is hTrackedEntity.GetEntity() )
-                Show();
-            else
-                Hide();
-        }
-        return HOOK_CONTINUE;
     }
 }
 
