@@ -8,6 +8,7 @@ Keys:
 * "target"          - target entity to show a healthbar for. Can be a player, npc or breakable item ( with hud info enabled )
 * "sprite"          - path to a custom sprite if desired. Otherwise uses default
 * "offset" "x y z"  - adds an offset for the health bar origin
+* "rendercolor" "r g b" - change color of the sprite
 * "scale" "0.0"     - resize the health bar, this is 0.3 by default
 * "distance" "0.0"  - the distance you have to be to be able to see the health bar
 * "spawnflags" "1"  - forces the healthbar to stay on for the entity
@@ -23,6 +24,8 @@ const string ENTITY_CLASSNAME = "env_healthbar";
 const string strDefaultSpriteName = "sprites/misc/healthbar.spr";
 
 bool blHealthBarEntityRegistered = false;
+bool blEntityCreatedHookRegister = false;
+bool blPlayerSpawnHookRegister = false;
 
 enum healthbarsettings
 {
@@ -52,9 +55,6 @@ void RegisterHealthBarEntity()
 {
     g_CustomEntityFuncs.RegisterCustomEntity( "HEALTHBAR::env_healthbar", ENTITY_CLASSNAME );
     blHealthBarEntityRegistered = g_CustomEntityFuncs.IsCustomEntity( ENTITY_CLASSNAME );
-
-    g_Game.PrecacheModel( strDefaultSpriteName );
-    g_Game.PrecacheGeneric( strDefaultSpriteName );
 }
 
 void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffset, const float flScale, const float flDrawDistance, const uint iSpawnFlags)
@@ -62,8 +62,8 @@ void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffse
     if( !blHealthBarEntityRegistered )
         return;
 
-    if( FlagSet( iHealthBarSettings, PLAYERS ) )
-        g_Hooks.RegisterHook( Hooks::Player::PlayerSpawn, @PlayerSpawned );
+    if( FlagSet( iHealthBarSettings, PLAYERS ) && !blPlayerSpawnHookRegister )
+        blPlayerSpawnHookRegister = g_Hooks.RegisterHook( Hooks::Player::PlayerSpawn, @PlayerSpawned );
 
     CBaseEntity@ pExistingHealthBar, pMonsterEntity, pBreakableEntity;
 
@@ -80,10 +80,11 @@ void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffse
             if( STR_EXCLUDED_NPCS.find( pMonsterEntity.GetClassname() ) >= 0 )
                 continue;
     
-            SpawnEnvHealthBar( @pMonsterEntity, vOriginOffset, flScale, flDrawDistance, iSpawnFlags );
+            SpawnEnvHealthBar( pMonsterEntity, vOriginOffset, flScale, flDrawDistance, iSpawnFlags );
         }
 
-        g_Hooks.RegisterHook( Hooks::Game::EntityCreated, @EntityCreated ); // Accounting for npcs spawning in later during the level
+        if( !blEntityCreatedHookRegister )
+            blEntityCreatedHookRegister = g_Hooks.RegisterHook( Hooks::Game::EntityCreated, @EntityCreated ); // Accounting for npcs spawning in later during the level
     }
 
     if( FlagSet( iHealthBarSettings, BREAKABLES ) )
@@ -104,7 +105,7 @@ void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffse
 HookReturnCode EntityCreated(CBaseEntity@ pEntity)
 {
     if( pEntity !is null && pEntity.IsMonster() )
-        g_Scheduler.SetTimeout( Schedulers(), "EntitySpawned", 0.05f, EHandle( @pEntity ) );
+        g_Scheduler.SetTimeout( Schedulers(), "EntitySpawned", 0.05f, EHandle( pEntity ) );
 
     return HOOK_CONTINUE;
 }
@@ -130,13 +131,10 @@ HookReturnCode PlayerSpawned(CBasePlayer@ pPlayer)
 
     return HOOK_CONTINUE;
 }
-// Credit to H2 for providing this function
+// Why is there no API method for this??
 bool FlagSet( uint iTargetBits, uint iFlags )
 {
-    if( ( iTargetBits & iFlags ) != 0 )
-        return true;
-    else
-        return false;
+    return ( ( iTargetBits & iFlags ) != 0 );
 }
 
 void SpawnEnvHealthBar(CBaseEntity@ pTarget, const Vector vOriginOffset, const float flScale, const float flDrawDistance, const uint iSpawnFlags)
@@ -171,9 +169,9 @@ class env_healthbar : ScriptBaseEntity
     private float m_flStartHealth;
     private float flDrawDistance = 12048;
     
-    private Vector vOffset = Vector( 0, 0, 16 );
+    private Vector vecOffset = Vector( 0, 0, 16 );
 
-    bool KeyValue( const string& in szKey, const string& in szValue )
+    bool KeyValue(const string& in szKey, const string& in szValue)
     {
         if( szKey == "sprite" ) 
         {
@@ -182,7 +180,7 @@ class env_healthbar : ScriptBaseEntity
         }
         else if( szKey == "offset" ) 
         {
-            g_Utility.StringToVector( vOffset, szValue );
+            g_Utility.StringToVector( vecOffset, szValue );
             return true;
         }
         else if( szKey == "distance" ) 
@@ -196,6 +194,7 @@ class env_healthbar : ScriptBaseEntity
 
     void Precache()
     {
+        BaseClass.Precache();
         g_Game.PrecacheModel( strSpriteName );
         g_Game.PrecacheGeneric( strSpriteName );
     }
@@ -268,7 +267,7 @@ class env_healthbar : ScriptBaseEntity
                     if( pTrackedEntity.IsBSPModel() )
                         g_EntityFuncs.SetOrigin( pHealthBar, pTrackedEntity.pev.absmin + ( pTrackedEntity.pev.size * 0.5 ) + Vector( 0, 0, pTrackedEntity.pev.absmax.z ) );
                     else
-                        g_EntityFuncs.SetOrigin( pHealthBar, pTrackedEntity.GetOrigin() + pTrackedEntity.pev.view_ofs + vOffset );
+                        g_EntityFuncs.SetOrigin( pHealthBar, pTrackedEntity.GetOrigin() + pTrackedEntity.pev.view_ofs + vecOffset );
                 }
             }
         }
@@ -312,7 +311,7 @@ class env_healthbar : ScriptBaseEntity
             m_flStartHealth = pTrackedEntity.pev.health;
             hTrackedEntity = pTrackedEntity;
         }
-        self.pev.nextthink = g_Engine.time + 0.01f;
+        self.pev.nextthink = g_Engine.time + 0.1f;
     }
     
     void AimThink()
@@ -357,6 +356,7 @@ class env_healthbar : ScriptBaseEntity
         CSprite@ pHealthBar = g_EntityFuncs.CreateSprite( strSpriteName, hTrackedEntity.GetEntity().GetOrigin(), false, 0.0f );
         pHealthBar.SetScale( self.pev.scale );
         pHealthBar.pev.rendermode = kRenderTransAdd;
+        pHealthBar.pev.rendercolor = self.pev.rendercolor;
         pHealthBar.pev.nextthink = 0;
         //  `CSprite::Frames` is broken.
         //g_Game.AlertMessage( at_notice, "pHealthBar Frames(): " + pHealthBar.Frames() + "\n" );
