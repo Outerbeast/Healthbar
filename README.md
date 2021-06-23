@@ -7,7 +7,6 @@ Draws a custom Healthbar for Npcs, Players or Breakables
 - Edit your `default_plugins.txt` file and add the following code
 ```
 "plugin"
-
 {
 
 	"name" "HealthBar"
