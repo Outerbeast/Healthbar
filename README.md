@@ -29,7 +29,9 @@ CVars (self explanatory, will default values provided if not set):
 Map script Installation:-
 
 Simply call RegisterHealthBarEntity(); in the MapInit function of your map script. Example
-```#include "beast/env_healthbar"
+
+```
+#include "beast/env_healthbar"
 
 void MapInit()
 {
