@@ -205,23 +205,27 @@ class env_healthbar : ScriptBaseEntity
         self.pev.movetype   = MOVETYPE_NONE;
         self.pev.solid      = SOLID_NOT;
         self.pev.effects    |= EF_NODRAW;
+        self.pev.scale      = self.pev.scale <= 0.0f ? 0.3f : self.pev.scale;
 
         g_EntityFuncs.SetOrigin( self, self.pev.origin );
-
-        if( self.pev.scale <= 0.0f )
-            self.pev.scale = 0.3f;
 
         SetUse( UseFunction( this.TrackUse ) );
         SetThink( ThinkFunction( this.TrackEntity ) );
         //  Run automatically if this has no targetname.
-        if( self.GetTargetname().IsEmpty() ) self.Use( self, self, USE_ON );
+        if( self.GetTargetname().IsEmpty() )
+            self.Use( self, self, USE_ON );
     }
 
     void UpdateOnRemove()
     {
         if( hHealthBar )
+        {   // Fadeout not working, unable to find reason why (proofreading wanted!)
+            //cast<CSprite@>( hHealthBar.GetEntity() ).Expand( 0.0f, 0.1f );
+            //hHealthBar.GetEntity().SUB_FadeOut();
+            //hHealthBar.GetEntity().SUB_StartFadeOut();
             g_EntityFuncs.Remove( hHealthBar.GetEntity() );
-        
+        }
+
         BaseClass.UpdateOnRemove();
     }
 
@@ -232,7 +236,7 @@ class env_healthbar : ScriptBaseEntity
         if( pTrackedEntity !is null && ( pTrackedEntity.IsPlayer() || pTrackedEntity.IsMonster() || pTrackedEntity.IsBreakable() ) )
         {
             if( !hHealthBar )
-                CreateHealthBar();
+                hHealthBar = CreateHealthBar();
 
             if( hHealthBar )
             {
@@ -244,6 +248,7 @@ class env_healthbar : ScriptBaseEntity
                         Hide();
                     else
                     {
+                        hHealthBar.GetEntity().pev.frame = 0.0f;
                         g_EntityFuncs.Remove( self );
                         return;
                     }
@@ -251,11 +256,12 @@ class env_healthbar : ScriptBaseEntity
                 else// Save more cpu speed because we only need to adjust it when it's alive.
                 {
                     // 1.0 = 100%
-                    float flPercentHealth   = Math.min( 1.f, GetHealth() / GetMaxHealth() );
+                    float flPercentHealth   = Math.min( 1.0f, GetHealth() / GetMaxHealth() );
                     float flCurrentFrame    = flPercentHealth * GetMaxFrame();
+
                     // Fix zero current frame if it's still alive.
-                    if( floor(flCurrentFrame) <= 0 && flPercentHealth > 0 )
-                        flCurrentFrame = Math.min( 1, GetMaxFrame() );
+                    if( floor( flCurrentFrame ) <= 0 && flPercentHealth > 0 )
+                        flCurrentFrame = Math.min( 0, GetMaxFrame() );
                     // This is horribly wrong.
                     // From API doc: `Advances this sprite's frame by the given amount of frames.
                     //pHealthBar.Animate(iPercentHealth);
@@ -282,7 +288,7 @@ class env_healthbar : ScriptBaseEntity
 
         self.pev.nextthink = g_Engine.time + 0.01f;
     }
-    //  Trigger-able.
+    // Trigger-able.
     void TrackUse(CBaseEntity@ pActivator, CBaseEntity@ pCaller, USE_TYPE useType, float flValue = 0.0f)
     {
         if( !self.ShouldToggle( useType, m_blOnOffState ) )
@@ -348,26 +354,27 @@ class env_healthbar : ScriptBaseEntity
         hHealthBar.GetEntity().pev.renderamt = 0.0f;
     }
 
-    void CreateHealthBar()
+    EHandle CreateHealthBar()
     {
         if( !hTrackedEntity )
-            return;
+            return EHandle( null );
 
         CSprite@ pHealthBar = g_EntityFuncs.CreateSprite( strSpriteName, hTrackedEntity.GetEntity().GetOrigin(), false, 0.0f );
         pHealthBar.SetScale( self.pev.scale );
-        pHealthBar.pev.rendermode = kRenderTransAdd;
+        pHealthBar.pev.rendermode = self.pev.rendermode == 0 ? 5 : self.pev.rendermode; // Using the enums here instead thows exception: "Can't implicitly convert from 'int' to 'RenderModes'" - wtf?
         pHealthBar.pev.rendercolor = self.pev.rendercolor;
-        pHealthBar.pev.nextthink = 0;
-        //  `CSprite::Frames` is broken.
+        pHealthBar.pev.nextthink = 0.0f;
+        // `CSprite::Frames` is broken.
         //g_Game.AlertMessage( at_notice, "pHealthBar Frames(): " + pHealthBar.Frames() + "\n" );
 
-        //  Is this really necessary ???
+        // Is this really necessary ???
         pHealthBar.pev.frame = GetMaxFrame();
         //g_Game.AlertMessage( at_notice, "env_healthbar GetMaxFrame(): " + GetMaxFrame() + "\n" );
-        hHealthBar = pHealthBar;
 
         if( self.pev.SpawnFlagBitSet( 1 ) )
             Show();
+
+        return EHandle( pHealthBar );
     }
 
     float GetHealth()
@@ -382,7 +389,7 @@ class env_healthbar : ScriptBaseEntity
         {
             float flMaxHP = hTrackedEntity.GetEntity().pev.max_health;
             if( flMaxHP <= 0 ) flMaxHP = m_flStartHealth;
-            if( flMaxHP <= 0 ) flMaxHP = 1; //  "Divided by Zero" still haunts you...
+            if( flMaxHP <= 0 ) flMaxHP = 1; // "Divided by Zero" still haunts you...
             return flMaxHP;
         }
         return 1;
@@ -390,7 +397,7 @@ class env_healthbar : ScriptBaseEntity
 
     int GetMaxFrame()
     {
-        //  Zero is minimum.
+        // Zero is minimum.
         if( hHealthBar ) return Math.max( 0, g_EngineFuncs.ModelFrames( g_EngineFuncs.ModelIndex( hHealthBar.GetEntity().pev.model ) ) - 1 );
         return 0;
     }
