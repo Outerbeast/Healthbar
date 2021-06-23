@@ -28,11 +28,18 @@ CVars (self explanatory, will default values provided if not set):
 
 Map script Installation:-
 
-Simply call RegisterHealthBarEntity(); in the MapInit function of your map script
-For information on how to set up your map scripts, check the Sven Co-op AngelScript Wiki
+Simply call RegisterHealthBarEntity(); in the MapInit function of your map script. Example
+`#include "beast/env_healthbar"
+
+void MapInit()
+{
+	HEALTHBAR::RegisterHealthBarEntity();
+}
+`
+For more information on how to set up your map scripts, visit the Sven Co-op AngelScript Wiki:
 https://github.com/baso88/SC_AngelScript/wiki/Map-Scripts
 
-Once registered, you can create the entity "env_healthbar" in your map and set the target entity
+Once registered, you can load the fgd into the map editor of your choice and set up the entity.
 
 Keys for configuring the entity:
 * `"target"`          	- target entity to show a healthbar for. Can be a player, npc or breakable item. This is required
