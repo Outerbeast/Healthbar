@@ -1,4 +1,4 @@
-/* env_healthbar
+/* env_healthbar v1.1
 Custom entity to draw a health bar above a target entity
 by Outerbeast
 
@@ -14,6 +14,7 @@ Keys:
 * "spawnflags" "1"  - forces the healthbar to stay on for the entity
 
 TO DO:
+- Fix sprite fadeout after parent dies
 - Render the healthbars individually for each player
 - Deal with monster_repel entities
 */

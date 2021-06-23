@@ -1,0 +1,46 @@
+@BaseClass = Mandatory
+[
+	ondestroyfn(string) : "OnDestroy Function"
+]
+
+@BaseClass base(Mandatory) = Targetname
+[
+	targetname(target_source) : "Name"
+]
+
+@BaseClass = Target
+[
+	target(target_destination) : "Target"
+]
+
+@BaseClass = Angles
+[
+	angles(string) : "Pitch Yaw Roll (X Y Z)" : "0 0 0"
+]
+
+@BaseClass = RenderFields
+[
+	rendermode(choices) : "Render Mode" : 5 =
+	[
+		0: "Normal"
+		1: "Color"
+		2: "Texture"
+		3: "Glow"
+		4: "Solid"
+		5: "Additive"
+	]
+	renderamt(integer) : "FX Amount (1 - 255)"
+	rendercolor(color255) : "FX Color (R G B)" : "0 0 0"
+]
+
+@PointClass sprite() base(Targetname, Target, RenderFields, Angles) size(-4 -4 -4, 4 4 4) color(255 0 0) = env_healthbar : "Health Bar"
+[
+	sprite(sprite) : "Health Sprite"
+	scale(string) : "Scale" : 0.3
+    offset(string) : "Position Offset" : "0 0 16"
+	distance(string) : "Max Draw Distance" : "12048"
+	spawnflags(flags) =
+	[
+		1: "Stay on" : 0
+	]
+]
