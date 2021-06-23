@@ -14,6 +14,7 @@ Keys:
 * "spawnflags" "1"  - forces the healthbar to stay on for the entity
 
 TO DO:
+- Flag for keeping the health bar ina  fixed position
 - Fix sprite fadeout after parent dies
 - Render the healthbars individually for each player
 - Deal with monster_repel entities
@@ -33,6 +34,12 @@ enum healthbarsettings
     PLAYERS     = 1 << 0,
     MONSTERS    = 1 << 1,
     BREAKABLES  = 1 << 2
+};
+
+enum healthbar_flags
+{
+    STAY_ON = 1 << 0,
+    //FIXED_POS = 1 << 1
 };
 
 const array<string> STR_EXCLUDED_NPCS = 
@@ -58,7 +65,7 @@ void RegisterHealthBarEntity()
     blHealthBarEntityRegistered = g_CustomEntityFuncs.IsCustomEntity( ENTITY_CLASSNAME );
 }
 
-void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffset, const float flScale, const float flDrawDistance, const uint iSpawnFlags)
+void StartHealthBarMode(const uint iHealthBarSettings, const Vector vecOriginOffset, const float flScale, const float flDrawDistance, const uint iSpawnFlags)
 {
     if( !blHealthBarEntityRegistered )
         return;
@@ -81,7 +88,7 @@ void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffse
             if( STR_EXCLUDED_NPCS.find( pMonsterEntity.GetClassname() ) >= 0 )
                 continue;
     
-            SpawnEnvHealthBar( pMonsterEntity, vOriginOffset, flScale, flDrawDistance, iSpawnFlags );
+            SpawnEnvHealthBar( EHandle( pMonsterEntity ) );
         }
 
         if( !blEntityCreatedHookRegister )
@@ -98,7 +105,7 @@ void StartHealthBarMode(const uint iHealthBarSettings, const Vector vOriginOffse
             if( !pBreakableEntity.pev.SpawnFlagBitSet( 32 ) || pBreakableEntity.pev.SpawnFlagBitSet( 1 ) )
                 continue;
 
-            SpawnEnvHealthBar( @pBreakableEntity, vOriginOffset, flScale, flDrawDistance, iSpawnFlags );
+            SpawnEnvHealthBar( EHandle( pBreakableEntity ) );
         }
     }
 }
@@ -122,13 +129,13 @@ final class Schedulers
 void NpcSpawned(CBaseMonster@ pSquadmaker, CBaseEntity@ pMonster) // Trigger this from a squadmaker via "function_name"
 {
     if( blHealthBarEntityRegistered && pMonster !is null )
-        SpawnEnvHealthBar( @pMonster, Vector( 0, 0, 0 ), 0.0f, 0.0f, 0 );
+        SpawnEnvHealthBar( EHandle( pMonster ) );
 }
 
 HookReturnCode PlayerSpawned(CBasePlayer@ pPlayer)
 {
     if( pPlayer !is null )
-        SpawnEnvHealthBar( @pPlayer, Vector( 0, 0, 0 ), 0.0f, 0.0f, 0 );
+        SpawnEnvHealthBar( EHandle( pPlayer ) );
 
     return HOOK_CONTINUE;
 }
@@ -138,25 +145,41 @@ bool FlagSet( uint iTargetBits, uint iFlags )
     return ( ( iTargetBits & iFlags ) != 0 );
 }
 
-void SpawnEnvHealthBar(CBaseEntity@ pTarget, const Vector vOriginOffset, const float flScale, const float flDrawDistance, const uint iSpawnFlags)
+EHandle SpawnEnvHealthBar
+(EHandle hTarget, 
+string strSprite = strDefaultSpriteName, 
+Vector vecOriginOffset = g_vecZero, 
+Vector vecColor = g_vecZero, 
+float flScale = 0.3f, 
+float flDrawDistance = 12048, 
+uint iSpawnFlags = 0)
 {
-    if( pTarget is null ) 
-       return;
+    if( !blHealthBarEntityRegistered || !hTarget ) 
+       return EHandle( null );
 
-    dictionary hlth;
-    if( vOriginOffset != g_vecZero ) hlth ["offset"]        = vOriginOffset.ToString();
-    if( flScale > 0 )                hlth ["scale"]         = string( flScale );
-    if( flDrawDistance > 0 )         hlth ["distance"]      = string( flDrawDistance );
-    if( iSpawnFlags > 0 )            hlth ["spawnflags"]    = string( iSpawnFlags );
+    dictionary hlth =
+    {
+        { "sprite", strSprite },
+        { "offset", vecOriginOffset.ToString() },
+        { "rendercolor", vecColor.ToString() },
+        { "scale", "" + flScale },
+        { "distance", "" + flDrawDistance },
+        { "spawnflags", "" + iSpawnFlags }
+    };
 
     CBaseEntity@ pEnvHealthBar = g_EntityFuncs.CreateEntity( ENTITY_CLASSNAME, hlth, false );
 
     if( pEnvHealthBar is null )
-       return;
+       return EHandle( null );
 
-    @pEnvHealthBar.pev.owner = pTarget.edict();
+    @pEnvHealthBar.pev.owner = hTarget.GetEntity().edict();
     //g_Game.AlertMessage( at_notice, "target: " + pTarget.entindex() + "\n" );
     g_EntityFuncs.DispatchSpawn( pEnvHealthBar.edict() );
+
+    if( g_EntityFuncs.IsValidEntity( pEnvHealthBar.edict() ) )
+        return EHandle( pEnvHealthBar );
+    else
+        return EHandle( null );
 }
 
 class env_healthbar : ScriptBaseEntity
@@ -349,7 +372,7 @@ class env_healthbar : ScriptBaseEntity
 
     void Hide()
     {
-        if( !hHealthBar || self.pev.SpawnFlagBitSet( 1 ) )
+        if( !hHealthBar || self.pev.SpawnFlagBitSet( STAY_ON ) )
             return;
         
         hHealthBar.GetEntity().pev.renderamt = 0.0f;
@@ -372,7 +395,7 @@ class env_healthbar : ScriptBaseEntity
         pHealthBar.pev.frame = GetMaxFrame();
         //g_Game.AlertMessage( at_notice, "env_healthbar GetMaxFrame(): " + GetMaxFrame() + "\n" );
 
-        if( self.pev.SpawnFlagBitSet( 1 ) )
+        if( self.pev.SpawnFlagBitSet( STAY_ON ) )
             Show();
 
         return EHandle( pHealthBar );
