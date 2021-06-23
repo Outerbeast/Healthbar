@@ -29,13 +29,13 @@ CVars (self explanatory, will default values provided if not set):
 Map script Installation:-
 
 Simply call RegisterHealthBarEntity(); in the MapInit function of your map script. Example
-`#include "beast/env_healthbar"
+```#include "beast/env_healthbar"
 
 void MapInit()
 {
 	HEALTHBAR::RegisterHealthBarEntity();
 }
-`
+```
 For more information on how to set up your map scripts, visit the Sven Co-op AngelScript Wiki:
 https://github.com/baso88/SC_AngelScript/wiki/Map-Scripts
 
