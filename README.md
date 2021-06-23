@@ -1,7 +1,7 @@
 # Healthbar
 Draws a custom Healthbar for Npcs, Players or Breakables
 
-Server plugin installation:- 
+## Server plugin installation:- 
 - Download the pack from the releases section ->
 - Extract to svencoop_addon
 - Edit your `default_plugins.txt` file and add the following code
@@ -26,7 +26,7 @@ CVars (self explanatory, will default values provided if not set):
 * `as_command healthbar_size 0.5`
 
 
-Map script Installation:-
+## Map script Installation:-
 
 Simply call `HEALTHBAR::RegisterHealthBarEntity();` in the MapInit function of your map script. Example:
 
