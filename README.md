@@ -1,9 +1,11 @@
 # Healthbar
 Draws a custom Healthbar for Npcs, Players or Breakables
 
-## Server plugin installation:- 
+## Initial setup
 - Download the pack from the releases section ->
 - Extract to svencoop_addon
+
+## Server plugin installation:- 
 - Edit your `default_plugins.txt` file and add the following code
 ```
 "plugin"
