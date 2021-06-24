@@ -2,22 +2,7 @@
 Custom entity to draw a health bar above a target entity
 by Outerbeast
 
-Register - HEALTHBAR::RegisterHealthBarEntity(); - Call in MapInit
-
-Keys:
-* "target"          - target entity to show a healthbar for. Can be a player, npc or breakable item ( with hud info enabled )
-* "sprite"          - path to a custom sprite if desired. Otherwise uses default
-* "offset" "x y z"  - adds an offset for the health bar origin
-* "rendercolor" "r g b" - change color of the sprite
-* "scale" "0.0"     - resize the health bar, this is 0.3 by default
-* "distance" "0.0"  - the distance you have to be to be able to see the health bar
-* "spawnflags" "1"  - forces the healthbar to stay on for the entity
-
-TO DO:
-- Flag for keeping the health bar ina  fixed position
-- Fix sprite fadeout after parent dies
-- Render the healthbars individually for each player
-- Deal with monster_repel entities
+For usage instructions, refer to env_healthbar.fgd
 */
 namespace HEALTHBAR
 {
@@ -36,7 +21,7 @@ enum healthbarsettings
     BREAKABLES  = 1 << 2
 };
 
-enum healthbar_flags
+enum healthbarflags
 {
     STAY_ON = 1 << 0,
     //FIXED_POS = 1 << 1
@@ -148,10 +133,10 @@ bool FlagSet( uint iTargetBits, uint iFlags )
 EHandle SpawnEnvHealthBar
 (EHandle hTarget, 
 string strSprite = strDefaultSpriteName, 
-Vector vecOriginOffset = g_vecZero, 
+Vector vecOriginOffset = Vector( 0, 0, 16 ), 
 Vector vecColor = g_vecZero, 
 float flScale = 0.3f, 
-float flDrawDistance = 12048, 
+float flDrawDistance = 12048,
 uint iSpawnFlags = 0)
 {
     if( !blHealthBarEntityRegistered || !hTarget ) 
@@ -230,6 +215,7 @@ class env_healthbar : ScriptBaseEntity
         self.pev.solid      = SOLID_NOT;
         self.pev.effects    |= EF_NODRAW;
         self.pev.scale      = self.pev.scale <= 0.0f ? 0.3f : self.pev.scale;
+        self.pev.renderamt  = self.pev.renderamt <= 0.0f ? 255.0f : self.pev.renderamt;
 
         g_EntityFuncs.SetOrigin( self, self.pev.origin );
 
@@ -308,7 +294,12 @@ class env_healthbar : ScriptBaseEntity
         }
 
         if( hHealthBar )
-            AimThink();
+        {
+            if( self.pev.SpawnFlagBitSet( STAY_ON ) )
+                Show();
+            else
+                AimThink();
+        }
 
         self.pev.nextthink = g_Engine.time + 0.01f;
     }
@@ -341,7 +332,7 @@ class env_healthbar : ScriptBaseEntity
             m_flStartHealth = pTrackedEntity.pev.health;
             hTrackedEntity = pTrackedEntity;
         }
-        self.pev.nextthink = g_Engine.time + 0.1f;
+        self.pev.nextthink = g_Engine.time + 0.01f;
     }
     
     void AimThink()
@@ -367,7 +358,7 @@ class env_healthbar : ScriptBaseEntity
         if( !hHealthBar )
             return;
         
-        hHealthBar.GetEntity().pev.renderamt = 255.0f;
+        hHealthBar.GetEntity().pev.renderamt = self.pev.renderamt;
     }
 
     void Hide()
@@ -386,6 +377,7 @@ class env_healthbar : ScriptBaseEntity
         CSprite@ pHealthBar = g_EntityFuncs.CreateSprite( strSpriteName, hTrackedEntity.GetEntity().GetOrigin(), false, 0.0f );
         pHealthBar.SetScale( self.pev.scale );
         pHealthBar.pev.rendermode = self.pev.rendermode == 0 ? 5 : self.pev.rendermode; // Using the enums here instead thows exception: "Can't implicitly convert from 'int' to 'RenderModes'" - wtf?
+        pHealthBar.pev.renderamt = self.pev.renderamt;
         pHealthBar.pev.rendercolor = self.pev.rendercolor;
         pHealthBar.pev.nextthink = 0.0f;
         // `CSprite::Frames` is broken.
@@ -429,7 +421,8 @@ class env_healthbar : ScriptBaseEntity
 
 }
 /* Special thanks to:
-- Cadaver: sprites
+- Cadaver: default sprite
 - Snarkeh: original concept and implementation in Command&Conquer campaign
+- Trempler: testing and feedback
 - AnggaraNothing and H2 for scripting support 
 */
