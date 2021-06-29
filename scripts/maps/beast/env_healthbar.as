@@ -24,7 +24,13 @@ enum healthbarsettings
 enum healthbarflags
 {
     STAY_ON = 1 << 0,
-    //FIXED_POS = 1 << 1
+};
+
+enum followtype
+{
+    FOLLOW_ORIGIN = 0,
+    USE_ATTACHMENT,
+    FIXED_POS
 };
 
 const array<string> STR_EXCLUDED_NPCS = 
@@ -137,6 +143,7 @@ Vector vecOriginOffset = Vector( 0, 0, 16 ),
 Vector vecColor = g_vecZero, 
 float flScale = 0.3f, 
 float flDrawDistance = 12048,
+uint iFollowType = 0,
 uint iSpawnFlags = 0)
 {
     if( !blHealthBarEntityRegistered || !hTarget ) 
@@ -149,6 +156,7 @@ uint iSpawnFlags = 0)
         { "rendercolor", vecColor.ToString() },
         { "scale", "" + flScale },
         { "distance", "" + flDrawDistance },
+        { "followtype", "" + iFollowType },
         { "spawnflags", "" + iSpawnFlags }
     };
 
@@ -173,7 +181,9 @@ class env_healthbar : ScriptBaseEntity
 
     private string strSpriteName = strDefaultSpriteName;
 
-    private bool m_blOnOffState;
+    private bool m_blOnOffState, blFollowing = false;
+
+    private uint iFollowType;
 
     private float m_flStartHealth;
     private float flDrawDistance = 12048;
@@ -195,6 +205,11 @@ class env_healthbar : ScriptBaseEntity
         else if( szKey == "distance" ) 
         {
             flDrawDistance = atof( szValue );
+            return true;
+        }
+        else if( szKey == "followtype" ) 
+        {
+            iFollowType = atoui( szValue );
             return true;
         }
         else
@@ -280,10 +295,33 @@ class env_healthbar : ScriptBaseEntity
                     pHealthBar.pev.frame = flCurrentFrame;
                     pHealthBar.SetScale( self.pev.scale );
 
-                    if( pTrackedEntity.IsBSPModel() )
-                        g_EntityFuncs.SetOrigin( pHealthBar, pTrackedEntity.pev.absmin + ( pTrackedEntity.pev.size * 0.5 ) + Vector( 0, 0, pTrackedEntity.pev.absmax.z ) );
-                    else
-                        g_EntityFuncs.SetOrigin( pHealthBar, pTrackedEntity.GetOrigin() + pTrackedEntity.pev.view_ofs + vecOffset );
+                    if( !blFollowing )
+                    {
+                        if( pTrackedEntity.IsBSPModel() )
+                            g_EntityFuncs.SetOrigin( pHealthBar, pTrackedEntity.pev.absmin + ( pTrackedEntity.pev.size * 0.5 ) + Vector( 0, 0, pTrackedEntity.pev.absmax.z ) );
+                        else
+                        {
+                            CBaseMonster@ pTemp = cast<CBaseMonster@>( pTrackedEntity );
+
+                            switch( iFollowType )
+                            {
+                                case USE_ATTACHMENT:
+                                    pHealthBar.SetAttachment( pTemp.edict(), cast<CBaseMonster@>( pTemp ).GetAttachmentCount() );
+                                    blFollowing = true;
+                                    break;
+
+                                case FIXED_POS:
+                                    g_EntityFuncs.SetOrigin( pHealthBar, self.GetOrigin() + vecOffset );
+                                    blFollowing = true;
+                                    break;
+
+                                default:
+                                    g_EntityFuncs.SetOrigin( pHealthBar, pTemp.GetOrigin() + pTemp.pev.view_ofs + vecOffset );
+                                    blFollowing = false;
+                                    break;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -334,7 +372,7 @@ class env_healthbar : ScriptBaseEntity
         }
         self.pev.nextthink = g_Engine.time + 0.01f;
     }
-    
+
     void AimThink()
     {
         for( int playerID = 1; playerID <= g_Engine.maxClients; playerID++ )
