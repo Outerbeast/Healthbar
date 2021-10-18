@@ -20,7 +20,7 @@ as_command healthbar_size 0.5
 
 These are default values if they are not added to the cfg, set them to whichever you like
 */
-#include "../maps/beast/env_healthbar"
+#include "../maps/env_healthbar"
 
 CCVar cvarHealthBarEnabled( "healthbar_enable", 1, "Enable healthbar mode", ConCommandFlag::AdminOnly );
 CCVar cvarHealthBarPlayers( "healthbar_players", 0, "Turn on healthbar for players", ConCommandFlag::AdminOnly );
