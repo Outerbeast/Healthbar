@@ -37,7 +37,12 @@ void PluginInit()
 void MapInit()
 {
     if( cvarHealthBarEnabled.GetInt() > 0 )
+    {
         HEALTHBAR::RegisterHealthBarEntity();
+        // Workaround for precache host error
+        g_Game.PrecacheModel( HEALTHBAR::strDefaultSpriteName );
+        g_Game.PrecacheGeneric( HEALTHBAR::strDefaultSpriteName );
+    }
 }
 
 void MapStart()
