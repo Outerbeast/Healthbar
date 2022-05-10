@@ -17,7 +17,7 @@ Draws a custom Healthbar for Npcs, Players or Breakables
 
 - Add your cvars to your (listen)server.cfg file - see cvars below:
 
-CVars (self explanatory, will default values provided if not set):
+CVars (self explanatory, with default values provided if not set):
 
 * `as_command healthbar_players 0`
 * `as_command healthbar_npcs 1`
@@ -46,12 +46,16 @@ https://github.com/baso88/SC_AngelScript/wiki/Map-Scripts
 Once registered, you can load the fgd into the map editor of your choice and set up the entity.
 
 Keys for configuring the entity:
-* `"target"`              - target entity to show a healthbar for. Can be a player, npc or breakable item ( with hud info enabled )
-* `"sprite"`              - path to a custom sprite if desired. Otherwise uses default "sprites/misc/healthbar.spr"
-* `"followtype"`	  - sets how the healthbar should follow the entity ( follow origin, attachment point or fixed in healthbar origin )
-* `"offset" "x y z"`      - adds an offset for the health bar origin
-* `"rendercolor" "r g b"` - change color of the sprite
-* `"renderamt" "0.0"`     - set max render amount when healthbar is fully visible (255 by default)
-* `"scale" "0.0"`         - resize the health bar, this is 0.3 by default
-* `"distance" "0.0"`      - the distance you have to be to be able to see the health bar (default and maximum is 12048)
-* `"spawnflags" "1"`      - forces the healthbar to stay on for the entity
+
+| Name | Key | Description |
+| ----| :---: | -------- |
+| Target name |`"targetname"`| Setting a targetname will make the healthbar disabled first requiring a trigger to enable it |
+| Target |`"target" "entityname"`| target entity to show a healthbar for. Can be a player, npc or breakable item ( with hud info enabled ) |			
+| Healthbar sprite |`"sprite" "sprites/misc/healthbar.spr`"  | path to a custom sprite if desired. Otherwise uses default "sprites/misc/healthbar.spr" |
+| Follow type |`"followtype" "f"`| sets how the healthbar should follow the entity ( follow origin, attachment point or fixed in healthbar origin ) |
+| Offset |`"offset" "x y z"`| adds an offset for the health bar origin |
+| Color |`"rendercolor" "r g b"`| change color of the sprite |
+| FX Amount |`"renderamt" "0.0"`| set max render amount when healthbar is fully visible (255 by default) |
+| Scale |`"scale" "0.0"`| resize the health bar, this is 0.3 by default |
+| Draw distance |`"distance" "0.0"`| the distance you have to be to be able to see the health bar (default and maximum is 12048) |
+| Flags |`"spawnflags" "1"`| forces the healthbar to stay on for the entity |
