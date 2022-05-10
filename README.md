@@ -48,6 +48,7 @@ Once registered, you can load the fgd into the map editor of your choice and set
 Keys for configuring the entity:
 * `"target"`              - target entity to show a healthbar for. Can be a player, npc or breakable item ( with hud info enabled )
 * `"sprite"`              - path to a custom sprite if desired. Otherwise uses default "sprites/misc/healthbar.spr"
+* `"followtype"`	  - sets how the healthbar should follow the entity ( follow origin, attachment point or fixed in healthbar origin )
 * `"offset" "x y z"`      - adds an offset for the health bar origin
 * `"rendercolor" "r g b"` - change color of the sprite
 * `"renderamt" "0.0"`     - set max render amount when healthbar is fully visible (255 by default)
